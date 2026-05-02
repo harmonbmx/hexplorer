@@ -143,7 +143,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const stravaBtn = document.getElementById('strava-btn');
     const stravaModal = document.getElementById('strava-modal');
     const stravaSaveBtn = document.getElementById('strava-save-btn');
-    const stravaCancelBtn = document.getElementById('strava-cancel-btn');
+    const planningBtn = document.getElementById('planning-btn');
+    let isPlanningMode = false;
+    let planningPoints = [];
+    const planningMarkersGroup = L.layerGroup().addTo(map);
+    const planningPreviewGroup = L.layerGroup().addTo(map);
+    const planningPolyline = L.polyline([], { color: '#8b5cf6', weight: 4, dashArray: '10, 10', opacity: 0.8 }).addTo(map);
     const stravaClientIdInput = document.getElementById('strava-client-id');
     const stravaClientSecretInput = document.getElementById('strava-client-secret');
 
@@ -180,12 +185,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    map.on('click', () => {
-        routeDetailsPanel.classList.add('hidden');
-        activitiesPanel.classList.add('hidden');
-        if (activePolyline) {
-            activePolyline.setStyle({ color: '#f97316', weight: 3, zIndexOffset: 0 });
-            activePolyline = null;
+    map.on('click', (e) => {
+        if (isPlanningMode) {
+            addPlanningPoint(e.latlng);
+        } else {
+            routeDetailsPanel.classList.add('hidden');
+            activitiesPanel.classList.add('hidden');
+            if (activePolyline) {
+                activePolyline.setStyle({ color: '#f97316', weight: 3, zIndexOffset: 0 });
+                activePolyline = null;
+            }
         }
     });
 
@@ -797,11 +806,114 @@ document.addEventListener("DOMContentLoaded", () => {
         stopTracking();
     });
 
-    resetBtn.addEventListener('click', () => {
-        if (confirm("Czy na pewno chcesz zresetować wszystkie odkryte tereny i trasę?")) {
-            exploredSquares.clear();
-            sessionSquares.clear();
-            visitedGminy.clear();
+    // --- TRYB PLANOWANIA ---
+    function togglePlanningMode() {
+        isPlanningMode = !isPlanningMode;
+        if (isPlanningMode) {
+            planningBtn.textContent = "Zakończ planowanie";
+            planningBtn.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+            statusMsg.textContent = "Klikaj na mapie, aby dodawać punkty trasy. Przeciągaj punkty, by je przesunąć.";
+        } else {
+            planningBtn.textContent = "Zaplanuj trasę";
+            planningBtn.style.background = "#8b5cf6";
+            statusMsg.textContent = "Planowanie zakończone.";
+            clearPlanning();
+        }
+    }
+
+    function addPlanningPoint(latlng) {
+        planningPoints.push([latlng.lat, latlng.lng]);
+        updatePlanningUI();
+    }
+
+    function updatePlanningUI() {
+        planningMarkersGroup.clearLayers();
+        planningPolyline.setLatLngs(planningPoints);
+        
+        planningPoints.forEach((pt, index) => {
+            const marker = L.circleMarker(pt, {
+                radius: 8,
+                fillColor: '#8b5cf6',
+                color: '#ffffff',
+                weight: 2,
+                fillOpacity: 1,
+                interactive: true,
+                draggable: true // Używamy customowej obsługi przeciągania
+            }).addTo(planningMarkersGroup);
+
+            // Leaflet CircleMarker nie ma wbudowanego 'draggable', więc używamy prostej implementacji
+            marker.on('mousedown', (e) => {
+                map.dragging.disable();
+                const onMouseMove = (ev) => {
+                    const newLatLng = map.mouseEventToLatLng(ev.originalEvent);
+                    planningPoints[index] = [newLatLng.lat, newLatLng.lng];
+                    marker.setLatLng(newLatLng);
+                    planningPolyline.setLatLngs(planningPoints);
+                    drawPlanningPreview();
+                };
+                const onMouseUp = () => {
+                    map.dragging.enable();
+                    map.off('mousemove', onMouseMove);
+                    map.off('mouseup', onMouseUp);
+                };
+                map.on('mousemove', onMouseMove);
+                map.on('mouseup', onMouseUp);
+            });
+        });
+
+        drawPlanningPreview();
+    }
+
+    function drawPlanningPreview() {
+        planningPreviewGroup.clearLayers();
+        if (planningPoints.length < 1) return;
+
+        const previewSquares = new Set();
+        
+        // Oblicz kwadraty dla całej planowanej trasy
+        for (let i = 0; i < planningPoints.length - 1; i++) {
+            const p1 = planningPoints[i];
+            const p2 = planningPoints[i + 1];
+            const dist = L.latLng(p1[0], p1[1]).distanceTo(L.latLng(p2[0], p2[1]));
+            const steps = Math.ceil(dist / 20);
+            
+            for (let j = 0; j <= steps; j++) {
+                const fraction = j / steps;
+                const lat = p1[0] + (p2[0] - p1[0]) * fraction;
+                const lng = p1[1] + (p2[1] - p1[1]) * fraction;
+                previewSquares.add(getSquareIndex(lat, lng));
+            }
+        }
+        
+        // Dodaj pojedynczy punkt jeśli jest tylko jeden
+        if (planningPoints.length === 1) {
+            previewSquares.add(getSquareIndex(planningPoints[0][0], planningPoints[0][1]));
+        }
+
+        previewSquares.forEach(sqIdx => {
+            // Rysuj tylko jeśli jeszcze nie jest odkryty
+            if (!exploredSquares.has(sqIdx)) {
+                const boundary = getSquareBounds(sqIdx);
+                L.polygon(boundary, {
+                    color: '#8b5cf6',
+                    weight: 1,
+                    dashArray: '3, 3',
+                    fillColor: '#8b5cf6',
+                    fillOpacity: 0.2,
+                    interactive: false
+                }).addTo(planningPreviewGroup);
+            }
+        });
+    }
+
+    function clearPlanning() {
+        planningPoints = [];
+        planningMarkersGroup.clearLayers();
+        planningPreviewGroup.clearLayers();
+        planningPolyline.setLatLngs([]);
+    }
+
+    planningBtn.addEventListener('click', togglePlanningMode);
             userPath.length = 0;
             pathPolyline.setLatLngs([]);
             savedRoutes.length = 0;
