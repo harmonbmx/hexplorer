@@ -162,7 +162,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const activitiesPanel = document.getElementById('activities-panel');
     const activitiesClose = document.getElementById('activities-close');
     const activitiesList = document.getElementById('activities-list');
+    const toggleUiBtn = document.getElementById('toggle-ui');
+    const uiOverlay = document.getElementById('ui-overlay');
     const routePolylines = {}; // Przechowuje referencje do obiektów L.polyline po ID
+    
+    toggleUiBtn.addEventListener('click', () => {
+        uiOverlay.classList.toggle('minimized');
+    });
     
     routeDetailsClose.addEventListener('click', () => {
         routeDetailsPanel.classList.add('hidden');

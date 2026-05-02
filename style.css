@@ -32,6 +32,49 @@ body, html {
     border: 1px solid rgba(0, 0, 0, 0.1);
     min-width: 320px;
     text-align: center;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+#ui-overlay.minimized {
+    transform: translateX(-50%) translateY(calc(100% - 30px));
+    opacity: 0.9;
+}
+
+.toggle-ui-btn {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1001;
+    font-size: 14px;
+    color: #475569;
+    padding: 0;
+    transition: transform 0.3s ease, background-color 0.2s;
+    box-shadow: none; /* Reset global button shadow */
+    flex: none; /* Reset global button flex */
+}
+
+.toggle-ui-btn:hover {
+    background-color: #f8fafc;
+    transform: translateX(-50%) scale(1.1);
+}
+
+#ui-overlay.minimized .toggle-ui-btn {
+    transform: translateX(-50%) rotate(180deg);
+}
+
+#ui-overlay.minimized .toggle-ui-btn:hover {
+    transform: translateX(-50%) rotate(180deg) scale(1.1);
 }
 
 h2 {
