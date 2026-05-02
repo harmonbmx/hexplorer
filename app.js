@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
         zoomControl: false // Wyłączamy domyślny kontroler, żeby ui-overlay lepiej wyglądał, można go potem przywrócić
     }).setView([49.5733, 21.7936], 13); // Domyślnie Iwonicz-Zdrój
 
-    // Jasny styl mapy z CartoDB
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    // Kolorowy, naturalny styl mapy (Voyager) - lepsza widoczność lasów i wody
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 20
