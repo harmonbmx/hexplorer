@@ -498,8 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
             color: '#f8fafc', 
             weight: 3,
             opacity: 1,
-            fillColor: isCurrent ? '#4ade80' : '#3b82f6', // Wypełnienie
-            fillOpacity: isCurrent ? 0.6 : 0.3 // Delikatnie zwiększona widoczność dla lepszego efektu "plamy"
+            fillColor: isCurrent ? '#4ade80' : '#93c5fd', // Jeszcze jaśniejszy niebieski
+            fillOpacity: isCurrent ? 0.6 : 0.4 
         });
 
         squareLayerGroup.addLayer(polygon);
