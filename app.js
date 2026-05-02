@@ -646,6 +646,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    let wakeLock = null;
+    const silentAudio = document.getElementById('silent-audio');
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log("Wake Lock aktywny");
+            }
+        } catch (err) {
+            console.warn(`Błąd Wake Lock: ${err.message}`);
+        }
+    }
+
     function startTracking() {
         if (!navigator.geolocation) {
             statusMsg.textContent = "Brak wsparcia dla geolokalizacji w Twojej przeglądarce.";
@@ -655,6 +669,10 @@ document.addEventListener("DOMContentLoaded", () => {
         isTracking = true;
         startBtn.textContent = "Zatrzymaj";
         statusMsg.textContent = "Oczekiwanie na sygnał GPS...";
+
+        // Aktywuj mechanizmy tła
+        requestWakeLock();
+        if (silentAudio) silentAudio.play().catch(e => console.warn("Audio play failed", e));
 
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
@@ -676,6 +694,16 @@ document.addEventListener("DOMContentLoaded", () => {
         isTracking = false;
         startBtn.textContent = "Rozpocznij śledzenie";
         statusMsg.textContent = "Zatrzymano.";
+
+        // Zwolnij mechanizmy tła
+        if (wakeLock) {
+            wakeLock.release().then(() => { wakeLock = null; });
+        }
+        if (silentAudio) {
+            silentAudio.pause();
+            silentAudio.currentTime = 0;
+        }
+
         if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
@@ -696,6 +724,13 @@ document.addEventListener("DOMContentLoaded", () => {
             pathPolyline.setLatLngs([]);
         }
     }
+
+    // Obsługa powrotu do aplikacji (re-aktywacja Wake Lock)
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            await requestWakeLock();
+        }
+    });
 
     // Zdarzenia przycisków
     startBtn.addEventListener('click', () => {
